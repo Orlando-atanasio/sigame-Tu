@@ -44,12 +44,12 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
-    // Verificar se as variáveis de ambiente estão presentes
-    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://utcqxwhtzmvbdcqqpwmm.supabase.co/MISSING') {
-      console.error("Variáveis de ambiente do Supabase não encontradas!");
+    // 1. Verificar variáveis de ambiente
+    if (!(import.meta as any).env.VITE_SUPABASE_URL || (import.meta as any).env.VITE_SUPABASE_URL.includes('MISSING')) {
+      console.error("ERRO: Variáveis VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não estão configuradas na Vercel.");
     }
 
-    // Verificar sessão atual
+    // 2. Verificar sessão atual silenciosamente
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsAuthenticated(true);
@@ -58,7 +58,7 @@ const App: React.FC = () => {
       }
     });
 
-    // Escutar mudanças de auth
+    // 3. Ouvinte de mudanças (apenas para Sign Out ou Sign In real)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setIsAuthenticated(true);
@@ -72,7 +72,6 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sincroniza o modo escuro com a tag HTML raiz
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -93,8 +92,11 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    showToast('Sessão encerrada com segurança.', 'info');
+    const { error } = await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setCurrentScreen(Screen.LOGIN);
+    if (error) console.error("Logout error:", error);
+    showToast('Sessão encerrada.', 'info');
   };
 
   const navigateTo = (screen: Screen) => {
@@ -112,18 +114,14 @@ const App: React.FC = () => {
     };
     setUserAssets([...userAssets, newAsset]);
     setCurrentScreen(Screen.WALLET);
-    showToast(`${asset.ticker} adicionado à sua carteira!`);
+    showToast(`${asset.ticker} adicionado!`);
   };
 
   const handleAssetClick = (ticker: string) => {
     setSelectedTicker(ticker);
-    if (ticker === 'VGHF11') {
-      navigateTo(Screen.ASSET_DETAILS_REPLACEMENT);
-    } else if (ticker === 'VGIR11') {
-      navigateTo(Screen.ASSET_DETAILS_MAINTAIN);
-    } else {
-      navigateTo(Screen.ASSET_DETAILS_ACTIVE);
-    }
+    if (ticker === 'VGHF11') navigateTo(Screen.ASSET_DETAILS_REPLACEMENT);
+    else if (ticker === 'VGIR11') navigateTo(Screen.ASSET_DETAILS_MAINTAIN);
+    else navigateTo(Screen.ASSET_DETAILS_ACTIVE);
   };
 
   const renderScreen = () => {
@@ -186,16 +184,11 @@ const App: React.FC = () => {
             onConnectBroker={() => showToast('Corretora conectada!')}
           />
         );
-      case Screen.ADD_ASSET:
-        return <AddAsset onBack={() => navigateTo(Screen.WALLET)} onAdd={handleAddAsset} />;
-      case Screen.ASSET_DETAILS_REPLACEMENT:
-        return <AssetDetailsReplacement onBack={() => navigateTo(Screen.WALLET)} onSwap={() => { setSelectedTicker('XPML11'); navigateTo(Screen.IDEAL_PORTFOLIO); }} />;
-      case Screen.ASSET_DETAILS_MAINTAIN:
-        return <AssetDetailsMaintain ticker={selectedTicker} onBack={() => navigateTo(Screen.WALLET)} />;
-      case Screen.ASSET_DETAILS_ACTIVE:
-        return <AssetDetailsActive ticker={selectedTicker} onBack={() => navigateTo(Screen.WALLET)} />;
-      case Screen.ACTION_PLAN:
-        return <ActionPlan onBack={() => navigateTo(Screen.ANALYSIS)} onExecute={() => navigateTo(Screen.IDEAL_PORTFOLIO)} />;
+      case Screen.ADD_ASSET: return <AddAsset onBack={() => navigateTo(Screen.WALLET)} onAdd={handleAddAsset} />;
+      case Screen.ASSET_DETAILS_REPLACEMENT: return <AssetDetailsReplacement onBack={() => navigateTo(Screen.WALLET)} onSwap={() => { setSelectedTicker('XPML11'); navigateTo(Screen.IDEAL_PORTFOLIO); }} />;
+      case Screen.ASSET_DETAILS_MAINTAIN: return <AssetDetailsMaintain ticker={selectedTicker} onBack={() => navigateTo(Screen.WALLET)} />;
+      case Screen.ASSET_DETAILS_ACTIVE: return <AssetDetailsActive ticker={selectedTicker} onBack={() => navigateTo(Screen.WALLET)} />;
+      case Screen.ACTION_PLAN: return <ActionPlan onBack={() => navigateTo(Screen.ANALYSIS)} onExecute={() => navigateTo(Screen.IDEAL_PORTFOLIO)} />;
       case Screen.IDEAL_PORTFOLIO:
         return (
           <IdealPortfolio
@@ -209,12 +202,9 @@ const App: React.FC = () => {
             isRebalanceFlow={selectedTicker !== 'XPML11'}
           />
         );
-      case Screen.RISK_ANALYSIS:
-        return <RiskAnalysis onBack={() => navigateTo(Screen.OVERVIEW)} onAddAsset={() => navigateTo(Screen.ADD_ASSET)} />;
-      case Screen.MONTHLY_REPORT:
-        return <MonthlyReport onBack={() => navigateTo(Screen.OVERVIEW)} onDownload={() => showToast('Relatório baixado com sucesso!', 'success')} />;
-      default:
-        return <PortfolioOverview onNavigateToAnalysis={() => navigateTo(Screen.ANALYSIS)} />;
+      case Screen.RISK_ANALYSIS: return <RiskAnalysis onBack={() => navigateTo(Screen.OVERVIEW)} onAddAsset={() => navigateTo(Screen.ADD_ASSET)} />;
+      case Screen.MONTHLY_REPORT: return <MonthlyReport onBack={() => navigateTo(Screen.OVERVIEW)} onDownload={() => showToast('Relatório baixado!', 'success')} />;
+      default: return <PortfolioOverview onNavigateToAnalysis={() => navigateTo(Screen.ANALYSIS)} />;
     }
   };
 
