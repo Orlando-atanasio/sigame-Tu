@@ -44,21 +44,27 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
+    // Verificar se as variáveis de ambiente estão presentes
+    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://utcqxwhtzmvbdcqqpwmm.supabase.co/MISSING') {
+      console.error("Variáveis de ambiente do Supabase não encontradas!");
+    }
+
     // Verificar sessão atual
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
       if (session) {
+        setIsAuthenticated(true);
         setUserData(prev => ({ ...prev, email: session.user.email || prev.email }));
         if (currentScreen === Screen.LOGIN) setCurrentScreen(Screen.OVERVIEW);
       }
     });
 
     // Escutar mudanças de auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
+        setIsAuthenticated(true);
         setUserData(prev => ({ ...prev, email: session.user.email || prev.email }));
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
         setCurrentScreen(Screen.LOGIN);
       }
     });
@@ -81,7 +87,7 @@ const App: React.FC = () => {
   };
 
   const handleLogin = () => {
-    // A mudança de estado é tratada pelo onAuthStateChange
+    setIsAuthenticated(true);
     setCurrentScreen(Screen.OVERVIEW);
     showToast(`Bem-vindo de volta!`, 'info');
   };
