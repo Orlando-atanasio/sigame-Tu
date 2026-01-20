@@ -2,8 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 export const getGeminiAnalysis = async (userAssets: any[], userProfile: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+  const ai = new GoogleGenAI((import.meta as any).env.VITE_GEMINI_API_KEY || '');
+
   const prompt = `Analise esta carteira de investimentos (perfil ${userProfile}): ${JSON.stringify(userAssets)}.
   A carteira padrão base para comparação tem rendimento de 0.98% am.
   Retorne um JSON estritamente com:

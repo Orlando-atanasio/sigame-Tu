@@ -57,7 +57,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin }) => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -69,8 +69,16 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin }) => {
 
       if (error) throw error;
 
-      onRegister();
+      console.log("Sign Up Success:", data);
+
+      if (!data.session) {
+        // Se não houver sessão, pode ser que o e-mail precise ser confirmado ou o login automático falhou
+        setError('Conta criada com sucesso! Tente fazer login agora na tela inicial.');
+      } else {
+        onRegister();
+      }
     } catch (err: any) {
+      console.error("Sign Up Error:", err);
       setError(err.message || 'Erro ao criar conta.');
     } finally {
       setIsLoading(false);
