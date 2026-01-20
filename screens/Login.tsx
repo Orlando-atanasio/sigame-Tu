@@ -50,7 +50,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
 
       onLogin(); // App.tsx vai detectar a sessão, mas chamamos para garantir feedbacks visuais se houver
     } catch (err: any) {
-      setError(err.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : 'Erro ao fazer login.');
+      console.error("Login Error:", err);
+      setError(err.message || 'Erro ao fazer login.');
     } finally {
       setIsLoading(false);
     }
