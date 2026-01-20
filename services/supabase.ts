@@ -1,14 +1,12 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const env = (import.meta as any).env;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase URL or Anon Key missing. Check .env.local');
+const supabaseUrl = env.VITE_SUPABASE_URL || 'https://MISSING.supabase.co';
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'MISSING';
+
+if (supabaseUrl.includes('MISSING')) {
+  console.error('Supabase URL is missing! Ensure VITE_SUPABASE_URL is set in Vercel.');
 }
 
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Screen } from './types';
 import Login from './screens/Login';
@@ -28,11 +27,11 @@ const App: React.FC = () => {
   const [hasSeenNotifications, setHasSeenNotifications] = useState(false);
   const [userAssets, setUserAssets] = useState<any[]>([]);
   const [userData, setUserData] = useState({
-    name: 'João Silva',
-    email: 'contato@sigame.tu',
-    phone: '(11) 98765-4321',
+    name: 'Orlando',
+    email: '',
+    phone: '',
     profile: 'Moderado',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNJrddoPaemoH1SgEcwWdxXdtUB3L7YOQ9MVljzpYhOcZIDgKmz70IGFnKpqy2lq4d1NYb3g7ALkrrmDnWuS45OA0w5P_xWxllgJ8PPdNDfL8te-T-tRrdorSxmUU8D2dX4IiGZ1vECUz0q-5lg1BwlOyrjEX0smN38XWUXQSjJWS32ou1d9ete2IYvGfK1dTcy8yjhtbsI8D75xPuDpi9MSajEnm7YW39dnK2M8GZ07qHJF14FwB2ZdtXbeQTcqGjqTV7ZDV39AE'
+    avatar: 'https://lh3.googleusercontent.com/a/default-user'
   });
 
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
@@ -44,25 +43,30 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
-    // 1. Verificar variáveis de ambiente
-    if (!(import.meta as any).env.VITE_SUPABASE_URL || (import.meta as any).env.VITE_SUPABASE_URL.includes('MISSING')) {
-      console.error("ERRO: Variáveis VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não estão configuradas na Vercel.");
-    }
-
-    // 2. Verificar sessão atual silenciosamente
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
-        setUserData(prev => ({ ...prev, email: session.user.email || prev.email }));
-        if (currentScreen === Screen.LOGIN) setCurrentScreen(Screen.OVERVIEW);
+        setUserData(prev => ({
+          ...prev,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || prev.name
+        }));
+        setCurrentScreen(Screen.OVERVIEW);
       }
-    });
+    };
 
-    // 3. Ouvinte de mudanças (apenas para Sign Out ou Sign In real)
+    checkInitialSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Supabase Auth Event:", event);
       if (session) {
         setIsAuthenticated(true);
-        setUserData(prev => ({ ...prev, email: session.user.email || prev.email }));
+        setUserData(prev => ({
+          ...prev,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || prev.name
+        }));
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setCurrentScreen(Screen.LOGIN);
@@ -88,14 +92,13 @@ const App: React.FC = () => {
   const handleLogin = () => {
     setIsAuthenticated(true);
     setCurrentScreen(Screen.OVERVIEW);
-    showToast(`Bem-vindo de volta!`, 'info');
+    showToast(`Olá! Bem-vindo de volta.`, 'success');
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
     setCurrentScreen(Screen.LOGIN);
-    if (error) console.error("Logout error:", error);
     showToast('Sessão encerrada.', 'info');
   };
 
@@ -114,7 +117,7 @@ const App: React.FC = () => {
     };
     setUserAssets([...userAssets, newAsset]);
     setCurrentScreen(Screen.WALLET);
-    showToast(`${asset.ticker} adicionado!`);
+    showToast(`${asset.ticker} adicionado com sucesso!`);
   };
 
   const handleAssetClick = (ticker: string) => {
@@ -203,7 +206,7 @@ const App: React.FC = () => {
           />
         );
       case Screen.RISK_ANALYSIS: return <RiskAnalysis onBack={() => navigateTo(Screen.OVERVIEW)} onAddAsset={() => navigateTo(Screen.ADD_ASSET)} />;
-      case Screen.MONTHLY_REPORT: return <MonthlyReport onBack={() => navigateTo(Screen.OVERVIEW)} onDownload={() => showToast('Relatório baixado!', 'success')} />;
+      case Screen.MONTHLY_REPORT: return <MonthlyReport onBack={() => navigateTo(Screen.OVERVIEW)} onDownload={() => showToast('Relatório pronto!', 'success')} />;
       default: return <PortfolioOverview onNavigateToAnalysis={() => navigateTo(Screen.ANALYSIS)} />;
     }
   };
